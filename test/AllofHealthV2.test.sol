@@ -7,19 +7,24 @@ import {AllofHealthv2} from "../src/AllofHealthV2.sol";
 
 contract AllofHealthV2Test is Test {
     event HospitalCreated(address indexed admin, uint256 indexed hospitalId);
+    event SystemAdminAdded(address indexed admin, uint256 indexed adminId);
     Deployer deployer;
     AllofHealthv2 allofHealth;
 
     uint256 constant STARTING_BALANCE = 10e18;
     address public patientAddress = makeAddr("user1");
     address public doctorAddress = makeAddr("user2");
+    address public deployerAddress = makeAddr("user5");
     address public hospitalAdminAddress = makeAddr("user3");
+    address public adminAddress = makeAddr("user4");
 
     function setUp() external {
         deployer = new Deployer();
         allofHealth = deployer.run();
+
         vm.deal(doctorAddress, STARTING_BALANCE);
         vm.deal(patientAddress, STARTING_BALANCE);
+        vm.deal(adminAddress, STARTING_BALANCE);
     }
 
     function testCreateHospitalSuccessfully() external {
@@ -48,5 +53,18 @@ contract AllofHealthV2Test is Test {
 
         assertEq(hospitalCount, 1);
         assertEq(doctorCount, 1);
+    }
+
+    function testCreateSystemAdmin() external {
+        vm.expectEmit(true, true, false, false);
+        vm.startPrank(deployerAddress);
+
+        emit SystemAdminAdded(adminAddress, 2);
+        allofHealth.addSystemAdmin(adminAddress);
+        vm.stopPrank();
+
+        uint256 adminCount = allofHealth.systemAdminCount();
+
+        assertEq(adminCount, 2);
     }
 }
