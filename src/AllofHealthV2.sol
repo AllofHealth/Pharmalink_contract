@@ -96,9 +96,7 @@ contract AllofHealthv2 {
         uint256 expiration;
         address patient;
         address approvedDoctor;
-        bytes32 diagnosis;
-        bytes32 recordDetailsUri;
-        bytes32 recordImageUri;
+        string recordDetailsUri;
     }
 
     struct PatientFamilyMedicalRecord {
@@ -108,15 +106,13 @@ contract AllofHealthv2 {
         uint256 duration;
         uint256 expiration;
         address approvedDoctor;
-        bytes32 diagnosis;
-        bytes32 recordDetailsUri;
-        bytes32 recordImageUri;
+        string recordDetailsUri;
     }
 
     /**
      * State Variables
      */
-    address public immutable ADMIN;
+    address private immutable ADMIN;
     uint256 public hospitalCount;
     uint256 public doctorCount;
     uint256 public approvedDoctorCount;
@@ -236,9 +232,7 @@ contract AllofHealthv2 {
     );
 
     event MedicalRecordAccessed(
-        bytes32 indexed diagnosis,
-        bytes32 indexed recordDetailsUri,
-        bytes32 indexed recordImageUri
+        string indexed recordDetailsUri
     );
 
     event PatientAdded(address indexed patient, uint256 indexed patientId);
@@ -374,21 +368,22 @@ contract AllofHealthv2 {
     constructor() {
         ADMIN = msg.sender;
         systemAdmins[msg.sender] = true;
+        systemAdminCount++;
     }
 
     receive() external payable {}
 
-    /**
+    /*
      * External Functions
      */
-    function addSystemAdmin(address _admin) external onlyAdmin {
+    function addSystemAdmin(address _admin) external onlySystemAdmin {
         require(_admin != address(0), "Invalid address");
         systemAdmins[_admin] = true;
         systemAdminCount++;
         emit SystemAdminAdded(_admin, systemAdminCount);
     }
 
-    function removeSystemAdmin(address _admin) external onlyAdmin {
+    function removeSystemAdmin(address _admin) external onlySystemAdmin {
         require(_admin != address(0), "Invalid address");
         systemAdmins[_admin] = false;
         systemAdminCount--;
@@ -1029,9 +1024,7 @@ contract AllofHealthv2 {
             viewerHasAccessToMedicalRecord(_viewer, _patientId, _recordId)
         ) {
             emit MedicalRecordAccessed(
-                record.diagnosis,
-                record.recordDetailsUri,
-                record.recordImageUri
+                record.recordDetailsUri
             );
         }
     }
@@ -1072,9 +1065,7 @@ contract AllofHealthv2 {
             )
         ) {
             emit MedicalRecordAccessed(
-                record.diagnosis,
-                record.recordDetailsUri,
-                record.recordImageUri
+                record.recordDetailsUri
             );
         }
     }
@@ -1083,15 +1074,13 @@ contract AllofHealthv2 {
         address _doctorAddress,
         address _patientAddress,
         uint256 _patientId,
-        bytes32 _diagnosis,
-        bytes32 _recordDetailsUri,
-        bytes32 _recordImageUri
+        string memory _recordDetailsUri
     )
         external
         patientIdCompliance(_patientId)
         doctorCompliance(_doctorAddress)
     {
-        if (_diagnosis == bytes32(0) || _recordDetailsUri == bytes32(0)) {
+        if ( bytes(_recordDetailsUri).length == 0) {
             revert InvalidMedicalRecordDetail();
         }
 
@@ -1109,9 +1098,7 @@ contract AllofHealthv2 {
             expiration: 0 seconds,
             patient: _patientAddress,
             approvedDoctor: address(0),
-            diagnosis: _diagnosis,
-            recordDetailsUri: _recordDetailsUri,
-            recordImageUri: _recordImageUri
+            recordDetailsUri: _recordDetailsUri
         });
         patientMedicalRecords[_patientId][medicalRecordId] = record;
 
@@ -1128,15 +1115,13 @@ contract AllofHealthv2 {
         address _doctorAddress,
         uint256 _principalPatientId,
         uint256 _familyMemberId,
-        bytes32 _diagnosis,
-        bytes32 _recordDetailsUri,
-        bytes32 _recordImageUri
+        string memory _recordDetailsUri
     )
         external
         patientIdCompliance(_principalPatientId)
         doctorCompliance(_doctorAddress)
     {
-        if (_diagnosis == bytes32(0) || _recordDetailsUri == bytes32(0)) {
+        if (bytes(_recordDetailsUri).length == 0) {
             revert InvalidMedicalRecordDetail();
         }
 
@@ -1159,9 +1144,7 @@ contract AllofHealthv2 {
             duration: 0 seconds,
             expiration: 0 seconds,
             approvedDoctor: address(0),
-            diagnosis: _diagnosis,
-            recordDetailsUri: _recordDetailsUri,
-            recordImageUri: _recordImageUri
+            recordDetailsUri: _recordDetailsUri
         });
 
         patientFamilyMedicalRecord[_principalPatientId][_familyMemberId][
