@@ -1187,7 +1187,7 @@ contract AllofHealthv2 {
         address _viewer,
         uint256 _patientId,
         uint256 _recordId
-    ) internal view returns (bool) {
+    ) public view returns (bool) {
         MedicalRecord memory record = patientMedicalRecords[_patientId][
             _recordId
         ];
@@ -1209,7 +1209,7 @@ contract AllofHealthv2 {
         uint256 _principalPatientId,
         uint256 _familyMemberId,
         uint256 _recordId
-    ) internal view returns (bool) {
+    ) public view returns (bool) {
         PatientFamilyMedicalRecord memory record = patientFamilyMedicalRecord[
             _principalPatientId
         ][_familyMemberId][_recordId];
