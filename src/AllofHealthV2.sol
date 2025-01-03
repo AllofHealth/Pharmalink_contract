@@ -136,28 +136,28 @@ contract AllofHealthv2 {
     mapping(uint256 => bool) public pharmacistExists;
 
     mapping(uint256 => mapping(address => bool))
-        public hospitalApprovedPractitioners;
+    private hospitalApprovedPractitioners;
 
-    mapping(uint256 => mapping(uint256 => address)) public hospitalDoctors;
-    mapping(uint256 => mapping(uint256 => address)) public hospitalPharmacists;
+    mapping(uint256 => mapping(uint256 => address)) private hospitalDoctors;
+    mapping(uint256 => mapping(uint256 => address)) private hospitalPharmacists;
 
     mapping(uint256 => mapping(uint256 => MedicalRecord))
-        public patientMedicalRecords;
+    private patientMedicalRecords;
 
     mapping(uint256 => mapping(uint256 => mapping(address => bool)))
-        public isPatientApprovedDoctors;
+    public isPatientApprovedDoctors;
     mapping(uint256 => mapping(address => bool))
-        public isApprovedByPatientToAddNewRecord;
+    public isApprovedByPatientToAddNewRecord;
 
     mapping(uint256 => mapping(uint256 => mapping(uint256 => mapping(address => bool))))
-        public isPatientApprovedDoctorForFamilyMember;
+    public isPatientApprovedDoctorForFamilyMember;
     mapping(uint256 => mapping(uint256 => mapping(address => bool)))
-        public isApprovedByPatientToAddNewRecordForFamilyMember;
+    public isApprovedByPatientToAddNewRecordForFamilyMember;
     mapping(uint256 => mapping(uint256 => bool)) public isPatientFamilyMember;
     mapping(uint256 => mapping(uint256 => PatientFamilyMember))
-        public patientFamilyMembers;
+    private patientFamilyMembers;
     mapping(uint256 => mapping(uint256 => mapping(uint256 => PatientFamilyMedicalRecord)))
-        public patientFamilyMedicalRecord;
+    private patientFamilyMedicalRecord;
 
     /**
      * Events
@@ -231,9 +231,7 @@ contract AllofHealthv2 {
         uint256 indexed medicalRecordId
     );
 
-    event MedicalRecordAccessed(
-        string indexed recordDetailsUri
-    );
+    event MedicalRecordAccessed(string indexed recordDetailsUri);
 
     event PatientAdded(address indexed patient, uint256 indexed patientId);
     event PatientFamilyMemberAdded(
@@ -331,19 +329,9 @@ contract AllofHealthv2 {
             revert InvalidAddress();
         }
 
-        if (
-            !isDoctor[_practitionerAddress] &&
-            !isPharmacist[_practitionerAddress]
-        ) {
-            revert InvalidPractitioner();
-        }
+        require(isDoctor[_practitionerAddress] || isPharmacist[_practitionerAddress], 'invalid practitioner');
+        require(approvedDoctors[_practitionerAddress] || approvedPharmacists[_practitionerAddress], "practitioner not approved");
 
-        if (
-            !approvedDoctors[_practitionerAddress] &&
-            !approvedPharmacists[_practitionerAddress]
-        ) {
-            revert PractitionerNotApproved();
-        }
         _;
     }
 
@@ -417,9 +405,9 @@ contract AllofHealthv2 {
         uint256 _hospitalId,
         address _admin
     )
-        external
-        hospitalIdCompliance(_hospitalId)
-        onlyHospitalAdmin(_hospitalId)
+    external
+    hospitalIdCompliance(_hospitalId)
+    onlyHospitalAdmin(_hospitalId)
     {
         if (_admin == address(0)) {
             revert InvalidAddress();
@@ -468,9 +456,9 @@ contract AllofHealthv2 {
         uint256 _hospitalId,
         uint256 _doctorId
     )
-        external
-        hospitalIdCompliance(_hospitalId)
-        onlyHospitalAdmin(_hospitalId)
+    external
+    hospitalIdCompliance(_hospitalId)
+    onlyHospitalAdmin(_hospitalId)
     {
         if (_doctorAddress == address(0)) {
             revert InvalidAddress();
@@ -513,10 +501,10 @@ contract AllofHealthv2 {
         uint256 _hospitalId,
         uint256 _doctorHospitalId
     )
-        external
-        hospitalIdCompliance(_hospitalId)
-        doctorCompliance(_doctorAddress)
-        onlyHospitalAdmin(_hospitalId)
+    external
+    hospitalIdCompliance(_hospitalId)
+    doctorCompliance(_doctorAddress)
+    onlyHospitalAdmin(_hospitalId)
     {
         if (_doctorHospitalId > hospitals[_hospitalId].doctorsCount) {
             revert InvalidDoctorId();
@@ -588,9 +576,9 @@ contract AllofHealthv2 {
         uint256 _hospitalId,
         uint256 _pharmacistId
     )
-        external
-        hospitalIdCompliance(_hospitalId)
-        onlyHospitalAdmin(_hospitalId)
+    external
+    hospitalIdCompliance(_hospitalId)
+    onlyHospitalAdmin(_hospitalId)
     {
         if (_pharmacistAddress == address(0)) {
             revert InvalidAddress();
@@ -635,9 +623,9 @@ contract AllofHealthv2 {
         uint256 _hospitalId,
         uint256 _pharmacistHospitalId
     )
-        external
-        hospitalIdCompliance(_hospitalId)
-        onlyHospitalAdmin(_hospitalId)
+    external
+    hospitalIdCompliance(_hospitalId)
+    onlyHospitalAdmin(_hospitalId)
     {
         if (_pharmacistAddress == address(0)) {
             revert InvalidAddress();
@@ -719,9 +707,9 @@ contract AllofHealthv2 {
     function addPatientFamilyMember(
         uint256 _principalPatientId
     )
-        external
-        onlyPatient(msg.sender)
-        patientIdCompliance(_principalPatientId)
+    external
+    onlyPatient(msg.sender)
+    patientIdCompliance(_principalPatientId)
     {
         patients[_principalPatientId].patientFamilyMemberCount++;
         uint256 familyMemberId = patients[_principalPatientId]
@@ -736,7 +724,7 @@ contract AllofHealthv2 {
         });
 
         patientFamilyMembers[_principalPatientId][
-            familyMemberId
+        familyMemberId
         ] = familyMember;
         emit PatientFamilyMemberAdded(_principalPatientId, familyMemberId);
     }
@@ -747,31 +735,21 @@ contract AllofHealthv2 {
         uint256 _recordId,
         uint256 _duration
     )
-        external
-        onlyPatient(msg.sender)
-        patientIdCompliance(_patientId)
-        doctorOrPharmacistCompliance(_practitionerAddress)
-        recordIdCompliance(_patientId, _recordId)
+    external
+    onlyPatient(msg.sender)
+    patientIdCompliance(_patientId)
+    doctorOrPharmacistCompliance(_practitionerAddress)
+    recordIdCompliance(_patientId, _recordId)
     {
-        if (
-            patientMedicalRecords[_patientId][_recordId].patient != msg.sender
-        ) {
-            revert NotRecordOwner();
-        }
-
+        require(patientMedicalRecords[_patientId][_recordId].patient == msg.sender, 'not record owner');
         MedicalRecord storage record = patientMedicalRecords[_patientId][
-            _recordId
-        ];
+                    _recordId
+            ];
 
-        if (
-            record.approvedDoctor == _practitionerAddress &&
-            block.timestamp < record.expiration
-        ) {
-            revert AccessToRecordAlreadyGranted();
-        }
+        require(record.approvedDoctor != _practitionerAddress, 'access already granted to this practitioner');
         patients[_patientId].approvalCount++;
         isPatientApprovedDoctors[_patientId][_recordId][
-            _practitionerAddress
+        _practitionerAddress
         ] = true;
 
         record.approvedDoctor = _practitionerAddress;
@@ -792,10 +770,10 @@ contract AllofHealthv2 {
         uint256 _recordId,
         uint256 _duration
     )
-        external
-        onlyPatient(msg.sender)
-        onlyPrincipalPatient(_principalPatientId)
-        doctorCompliance(_doctorAddress)
+    external
+    onlyPatient(msg.sender)
+    onlyPrincipalPatient(_principalPatientId)
+    doctorCompliance(_doctorAddress)
     {
         if (
             _familyMemberId >
@@ -804,34 +782,24 @@ contract AllofHealthv2 {
             revert InvalidFamilyMemberId();
         }
 
-        if (
-            _recordId >
-            patientFamilyMembers[_principalPatientId][_familyMemberId]
-                .familyMemberMedicalRecordCount
-        ) {
-            revert InvalidMedicalRecordId();
-        }
+        require(_recordId <= patientFamilyMembers[_principalPatientId][_familyMemberId]
+        .familyMemberMedicalRecordCount, 'invalid medical record id');
+
 
         bool isDoctorApproved = isPatientApprovedDoctorForFamilyMember[
-            _principalPatientId
-        ][_familyMemberId][_recordId][_doctorAddress];
+                    _principalPatientId
+            ][_familyMemberId][_recordId][_doctorAddress];
         PatientFamilyMedicalRecord storage record = patientFamilyMedicalRecord[
-            _principalPatientId
-        ][_familyMemberId][_recordId];
+                    _principalPatientId
+            ][_familyMemberId][_recordId];
 
-        if (
-            isDoctorApproved &&
-            record.approvedDoctor == _doctorAddress &&
-            block.timestamp < record.expiration
-        ) {
-            revert AccessToRecordAlreadyGranted();
-        }
+        require(!isDoctorApproved && record.approvedDoctor != _doctorAddress, 'access already granted');
 
         isPatientApprovedDoctorForFamilyMember[_principalPatientId][
-            _familyMemberId
+        _familyMemberId
         ][_recordId][_doctorAddress] = true;
         patientFamilyMembers[_principalPatientId][_familyMemberId]
-            .approvalCount++;
+        .approvalCount++;
         record.approvedDoctor = _doctorAddress;
         record.duration = _duration;
         record.expiration = block.timestamp + _duration;
@@ -843,14 +811,12 @@ contract AllofHealthv2 {
         address _doctorAddress,
         uint256 _patientId
     )
-        external
-        onlyPatient(msg.sender)
-        patientIdCompliance(_patientId)
-        doctorCompliance(_doctorAddress)
+    external
+    onlyPatient(msg.sender)
+    patientIdCompliance(_patientId)
+    doctorCompliance(_doctorAddress)
     {
-        if (isApprovedByPatientToAddNewRecord[_patientId][_doctorAddress]) {
-            revert AccessAlreadyGranted();
-        }
+        require(!isApprovedByPatientToAddNewRecord[_patientId][_doctorAddress], 'access already granted');
 
         patients[_patientId].approvalCount++;
         isApprovedByPatientToAddNewRecord[_patientId][_doctorAddress] = true;
@@ -862,22 +828,19 @@ contract AllofHealthv2 {
         uint256 _patientId,
         uint256 _principalPatientId
     )
-        external
-        onlyPatient(msg.sender)
-        onlyPrincipalPatient(_principalPatientId)
-        doctorCompliance(_doctorAddress)
+    external
+    onlyPatient(msg.sender)
+    onlyPrincipalPatient(_principalPatientId)
+    doctorCompliance(_doctorAddress)
     {
-        if (
-            isApprovedByPatientToAddNewRecordForFamilyMember[_patientId][
-                _principalPatientId
-            ][_doctorAddress]
-        ) {
-            revert AccessAlreadyGranted();
-        }
+
+        require(!isApprovedByPatientToAddNewRecordForFamilyMember[_patientId][
+        _principalPatientId
+        ][_doctorAddress], 'access already granted');
 
         patientFamilyMembers[_principalPatientId][_patientId].approvalCount++;
         isApprovedByPatientToAddNewRecordForFamilyMember[_patientId][
-            _principalPatientId
+        _principalPatientId
         ][_doctorAddress] = true;
 
         emit WriteAccessGranted(_doctorAddress, _patientId);
@@ -887,10 +850,10 @@ contract AllofHealthv2 {
         address _doctorAddress,
         uint256 _patientId
     )
-        external
-        onlyPatient(msg.sender)
-        patientIdCompliance(_patientId)
-        doctorCompliance(_doctorAddress)
+    external
+    onlyPatient(msg.sender)
+    patientIdCompliance(_patientId)
+    doctorCompliance(_doctorAddress)
     {
         if (!isApprovedByPatientToAddNewRecord[_patientId][_doctorAddress]) {
             revert AccessNotGranted();
@@ -906,22 +869,22 @@ contract AllofHealthv2 {
         uint256 _patientId,
         uint256 _principalPatientId
     )
-        external
-        onlyPatient(msg.sender)
-        onlyPrincipalPatient(_principalPatientId)
-        doctorCompliance(_doctorAddress)
+    external
+    onlyPatient(msg.sender)
+    onlyPrincipalPatient(_principalPatientId)
+    doctorCompliance(_doctorAddress)
     {
         if (
             !isApprovedByPatientToAddNewRecordForFamilyMember[_patientId][
-                _principalPatientId
-            ][_doctorAddress]
+        _principalPatientId
+        ][_doctorAddress]
         ) {
             revert AccessNotGranted();
         }
 
         patientFamilyMembers[_principalPatientId][_patientId].approvalCount--;
         isApprovedByPatientToAddNewRecordForFamilyMember[_patientId][
-            _principalPatientId
+        _principalPatientId
         ][_doctorAddress] = false;
 
         emit WriteAccessRevoked(_doctorAddress, _patientId);
@@ -932,11 +895,11 @@ contract AllofHealthv2 {
         uint256 _recordId,
         address _doctorAddress
     )
-        external
-        onlyPatient(msg.sender)
-        doctorCompliance(_doctorAddress)
-        patientIdCompliance(_patientId)
-        recordIdCompliance(_recordId, _patientId)
+    external
+    onlyPatient(msg.sender)
+    doctorCompliance(_doctorAddress)
+    patientIdCompliance(_patientId)
+    recordIdCompliance(_recordId, _patientId)
     {
         if (!patientHasRecords(_patientId)) {
             revert MedicalRecordNotFound();
@@ -962,10 +925,10 @@ contract AllofHealthv2 {
         uint256 _principalPatientId,
         uint256 _familyMemberId
     )
-        external
-        onlyPatient(msg.sender)
-        onlyPrincipalPatient(_principalPatientId)
-        doctorCompliance(_doctorAddress)
+    external
+    onlyPatient(msg.sender)
+    onlyPrincipalPatient(_principalPatientId)
+    doctorCompliance(_doctorAddress)
     {
         if (
             !patientFamilyMemberHasRecords(_principalPatientId, _familyMemberId)
@@ -982,18 +945,18 @@ contract AllofHealthv2 {
         if (
             _recordId >
             patientFamilyMembers[_principalPatientId][_familyMemberId]
-                .familyMemberMedicalRecordCount
+            .familyMemberMedicalRecordCount
         ) {
             revert InvalidMedicalRecordId();
         }
         isPatientApprovedDoctorForFamilyMember[_principalPatientId][
-            _familyMemberId
+        _familyMemberId
         ][_recordId][_doctorAddress] = false;
         patientFamilyMedicalRecord[_principalPatientId][_familyMemberId][
-            _recordId
+        _recordId
         ].approvedDoctor = address(0);
         patientFamilyMembers[_principalPatientId][_familyMemberId]
-            .approvalCount--;
+        .approvalCount--;
 
         emit RecordAccessRevoked(msg.sender, _doctorAddress, _recordId);
     }
@@ -1003,9 +966,11 @@ contract AllofHealthv2 {
         uint256 _patientId,
         address _viewer
     )
-        public
-        patientIdCompliance(_patientId)
-        recordIdCompliance(_recordId, _patientId)
+    public
+    view
+    patientIdCompliance(_patientId)
+    recordIdCompliance(_recordId, _patientId)
+    returns (string memory _recordDetails)
     {
         if (_viewer == address(0)) {
             revert InvalidAddress();
@@ -1015,18 +980,21 @@ contract AllofHealthv2 {
             revert Unauthorized();
         }
 
-        MedicalRecord memory record = patientMedicalRecords[_patientId][
-            _recordId
-        ];
+        require(patientHasRecords(_patientId), "patient has no records");
 
-        if (
-            _viewer == record.patient ||
-            viewerHasAccessToMedicalRecord(_viewer, _patientId, _recordId)
-        ) {
-            emit MedicalRecordAccessed(
-                record.recordDetailsUri
-            );
-        }
+        MedicalRecord memory record = patientMedicalRecords[_patientId][
+                    _recordId
+            ];
+
+        bool hasAccess = viewerHasAccessToMedicalRecord(
+            _viewer,
+            _patientId,
+            _recordId
+        );
+
+        require(hasAccess, "unauthorized");
+
+        return record.recordDetailsUri;
     }
 
     function viewFamilyMemberMedicalRecord(
@@ -1034,7 +1002,12 @@ contract AllofHealthv2 {
         uint256 _principalPatientId,
         uint256 _familyMemberId,
         address _viewer
-    ) external patientIdCompliance(_principalPatientId) {
+    )
+    external
+    view
+    patientIdCompliance(_principalPatientId)
+    returns (string memory _recordDetails)
+    {
         if (_viewer == address(0)) {
             revert InvalidAddress();
         }
@@ -1046,28 +1019,29 @@ contract AllofHealthv2 {
         if (
             _recordId >
             patientFamilyMembers[_principalPatientId][_familyMemberId]
-                .familyMemberMedicalRecordCount
+            .familyMemberMedicalRecordCount
         ) {
             revert InvalidMedicalRecordId();
         }
 
+        require(
+            patientFamilyMemberHasRecords(_principalPatientId, _familyMemberId),
+            "patient has no records"
+        );
         PatientFamilyMedicalRecord memory record = patientFamilyMedicalRecord[
-            _principalPatientId
-        ][_familyMemberId][_recordId];
+                    _principalPatientId
+            ][_familyMemberId][_recordId];
 
-        if (
-            _viewer == patients[_principalPatientId].walletAddress ||
-            viewerHasAccessToPatientFamilyMemberMedicalRecord(
-                _viewer,
-                _principalPatientId,
-                _familyMemberId,
-                _recordId
-            )
-        ) {
-            emit MedicalRecordAccessed(
-                record.recordDetailsUri
-            );
-        }
+        bool hasAccess = viewerHasAccessToPatientFamilyMemberMedicalRecord(
+            _viewer,
+            _principalPatientId,
+            _familyMemberId,
+            _recordId
+        );
+
+        require(hasAccess, "unauthorized");
+
+        return record.recordDetailsUri;
     }
 
     function addMedicalRecord(
@@ -1076,11 +1050,11 @@ contract AllofHealthv2 {
         uint256 _patientId,
         string memory _recordDetailsUri
     )
-        external
-        patientIdCompliance(_patientId)
-        doctorCompliance(_doctorAddress)
+    external
+    patientIdCompliance(_patientId)
+    doctorCompliance(_doctorAddress)
     {
-        if ( bytes(_recordDetailsUri).length == 0) {
+        if (bytes(_recordDetailsUri).length == 0) {
             revert InvalidMedicalRecordDetail();
         }
 
@@ -1117,9 +1091,9 @@ contract AllofHealthv2 {
         uint256 _familyMemberId,
         string memory _recordDetailsUri
     )
-        external
-        patientIdCompliance(_principalPatientId)
-        doctorCompliance(_doctorAddress)
+    external
+    patientIdCompliance(_principalPatientId)
+    doctorCompliance(_doctorAddress)
     {
         if (bytes(_recordDetailsUri).length == 0) {
             revert InvalidMedicalRecordDetail();
@@ -1127,16 +1101,16 @@ contract AllofHealthv2 {
 
         if (
             !isApprovedByPatientToAddNewRecordForFamilyMember[
-                _principalPatientId
-            ][_familyMemberId][_doctorAddress]
+        _principalPatientId
+        ][_familyMemberId][_doctorAddress]
         ) {
             revert AccessNotGranted();
         }
         patientFamilyMembers[_principalPatientId][_familyMemberId]
-            .familyMemberMedicalRecordCount++;
+        .familyMemberMedicalRecordCount++;
         uint256 medicalRecordId = patientFamilyMembers[_principalPatientId][
-            _familyMemberId
-        ].familyMemberMedicalRecordCount;
+                    _familyMemberId
+            ].familyMemberMedicalRecordCount;
         PatientFamilyMedicalRecord memory record = PatientFamilyMedicalRecord({
             medicalRecordId: medicalRecordId,
             principalPatientId: _principalPatientId,
@@ -1148,12 +1122,12 @@ contract AllofHealthv2 {
         });
 
         patientFamilyMedicalRecord[_principalPatientId][_familyMemberId][
-            medicalRecordId
+        medicalRecordId
         ] = record;
         patientFamilyMembers[_principalPatientId][_familyMemberId]
-            .approvalCount--;
+        .approvalCount--;
         isApprovedByPatientToAddNewRecordForFamilyMember[_principalPatientId][
-            _familyMemberId
+        _familyMemberId
         ][_doctorAddress] = false;
 
         emit FamilyMemberMedicalRecordAdded(
@@ -1180,7 +1154,7 @@ contract AllofHealthv2 {
     ) internal view returns (bool) {
         return
             patientFamilyMembers[_principalPatientId][_familyMemberId]
-                .familyMemberMedicalRecordCount > 0;
+            .familyMemberMedicalRecordCount > 0;
     }
 
     function viewerHasAccessToMedicalRecord(
@@ -1189,14 +1163,15 @@ contract AllofHealthv2 {
         uint256 _recordId
     ) public view returns (bool) {
         MedicalRecord memory record = patientMedicalRecords[_patientId][
-            _recordId
-        ];
+                    _recordId
+            ];
         bool accessValid = false;
 
         if (
-            isPatientApprovedDoctors[_patientId][_recordId][_viewer] &&
+            (isPatientApprovedDoctors[_patientId][_recordId][_viewer] &&
             record.approvedDoctor == _viewer &&
-            block.timestamp < record.expiration
+                block.timestamp < record.expiration) ||
+            _viewer == record.patient
         ) {
             accessValid = true;
         }
@@ -1211,15 +1186,17 @@ contract AllofHealthv2 {
         uint256 _recordId
     ) public view returns (bool) {
         PatientFamilyMedicalRecord memory record = patientFamilyMedicalRecord[
-            _principalPatientId
-        ][_familyMemberId][_recordId];
+                    _principalPatientId
+            ][_familyMemberId][_recordId];
 
         bool accessValid = false;
+        address _principalPatient = patients[_principalPatientId].walletAddress;
 
         if (
-            isPatientApprovedDoctorForFamilyMember[_principalPatientId][
-                _familyMemberId
-            ][_recordId][_viewer] && block.timestamp < record.expiration
+            (isPatientApprovedDoctorForFamilyMember[_principalPatientId][
+            _familyMemberId
+            ][_recordId][_viewer] && block.timestamp < record.expiration) ||
+            _viewer == _principalPatient
         ) {
             accessValid = true;
         }
