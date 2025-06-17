@@ -9,9 +9,7 @@ contract AllofHealthV2Test is Test {
     event HospitalCreated(address indexed admin, uint256 indexed hospitalId);
     event SystemAdminAdded(address indexed admin, uint256 indexed adminId);
     event MedicalRecordAccessApproved(
-        address indexed patient,
-        address indexed approvedDoctor,
-        uint256 indexed medicalRecordId
+        address indexed patient, address indexed approvedDoctor, uint256 indexed medicalRecordId
     );
 
     Deployer deployer;
@@ -133,24 +131,14 @@ contract AllofHealthV2Test is Test {
         assertEq(isDoctorApproved, true);
     }
 
-    function test_approvePharmacist()
-        external
-        bootstrap_hospital
-        bootstrap_pharmacist
-    {
+    function test_approvePharmacist() external bootstrap_hospital bootstrap_pharmacist {
         vm.startPrank(hospitalAdminAddress);
         uint256 hospitalId = 1;
         uint256 pharmacistId = 1;
-        allofHealth.approvePharmacist(
-            pharmacistAddress,
-            hospitalId,
-            pharmacistId
-        );
+        allofHealth.approvePharmacist(pharmacistAddress, hospitalId, pharmacistId);
         vm.stopPrank();
 
-        bool isPharmacistApproved = allofHealth.approvedPharmacists(
-            pharmacistAddress
-        );
+        bool isPharmacistApproved = allofHealth.approvedPharmacists(pharmacistAddress);
         assertEq(isPharmacistApproved, true);
     }
 
@@ -166,10 +154,7 @@ contract AllofHealthV2Test is Test {
         allofHealth.approveAccessToAddNewRecord(doctorAddress, patientId);
         vm.stopPrank();
 
-        bool isAccessApproved = allofHealth.isApprovedByPatientToAddNewRecord(
-            patientId,
-            doctorAddress
-        );
+        bool isAccessApproved = allofHealth.isApprovedByPatientToAddNewRecord(patientId, doctorAddress);
         assertEq(isAccessApproved, true);
     }
 
@@ -192,32 +177,19 @@ contract AllofHealthV2Test is Test {
         string memory recordDetailsUri = "https://example.com/medical-record";
 
         vm.startPrank(doctorAddress);
-        allofHealth.addMedicalRecord(
-            doctorAddress,
-            patientAddress,
-            patientId,
-            recordDetailsUri
-        );
+        allofHealth.addMedicalRecord(doctorAddress, patientAddress, patientId, recordDetailsUri);
         vm.stopPrank();
 
         uint256 medicalRecordId = 1;
 
         vm.startPrank(patientAddress);
-        string memory recordUri = allofHealth.viewMedicalRecord(
-            medicalRecordId,
-            patientId,
-            patientAddress
-        );
+        string memory recordUri = allofHealth.viewMedicalRecord(medicalRecordId, patientId, patientAddress);
         vm.stopPrank();
 
         console.log("Expected:", recordDetailsUri);
         console.log("Actual:", recordUri);
-        bool isDoctorStillApprovedToAddRecord = allofHealth
-            .isApprovedByPatientToAddNewRecord(patientId, doctorAddress);
+        bool isDoctorStillApprovedToAddRecord = allofHealth.isApprovedByPatientToAddNewRecord(patientId, doctorAddress);
         assertEq(isDoctorStillApprovedToAddRecord, false);
-        assertEq(
-            keccak256(abi.encodePacked(recordUri)),
-            keccak256(abi.encodePacked(recordDetailsUri))
-        );
+        assertEq(keccak256(abi.encodePacked(recordUri)), keccak256(abi.encodePacked(recordDetailsUri)));
     }
 }
